@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secret Santa 🎄 - Laboratorio Dottor Brex</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red-main: #ff2a4b;
+            --red-dark: #b3001e;
+            --green-mint: #00e676;
+            --green-pine: #0a3a21;
+            --gold: #ffcc00;
+            --gold-light: #ffeb3b;
+            --bg-deep: #0a101d;
+            --card-glass: rgba(22, 34, 54, 0.85);
+            --card-border: rgba(255, 204, 0, 0.25);
+            --text-light: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 20%, #1c0a2e 0%, var(--bg-deep) 70%);
+            color: var(--text-light);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 10px;
+        }
+
+        #snowCanvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .santa-sleigh {
+            position: fixed;
+            top: 15px;
+            right: -250px;
+            font-size: 2.2rem;
+            z-index: 2;
+            animation: flySanta 20s linear infinite;
+            filter: drop-shadow(0 0 15px var(--gold));
+            pointer-events: none;
+        }
+
+        @keyframes flySanta {
+            0% { transform: translateX(0) translateY(0) scaleX(1); right: -250px; }
+            45% { transform: translateX(-120vw) translateY(20px) scaleX(1); right: -250px; }
+            50% { transform: translateX(-120vw) translateY(20px) scaleX(-1); }
+            95% { transform: translateX(10vw) translateY(-10px) scaleX(-1); }
+            100% { transform: translateX(10vw) translateY(-10px) scaleX(1); right: -250px; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 5;
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* HEADER FESTOSO */
+        .header-banner {
+            text-align: center;
+            background: linear-gradient(135deg, rgba(255, 42, 75, 0.25), rgba(0, 230, 118, 0.15));
+            border: 2px solid var(--card-border);
+            border-radius: 22px;
+            padding: 14px 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(255, 204, 0, 0.15);
+            backdrop-filter: blur(15px);
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header-banner h1 {
+            font-family: 'Fredoka', cursive;
+            color: var(--gold);
+            font-size: 1.85rem;
+            text-shadow: 0 2px 8px rgba(255, 204, 0, 0.4);
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .header-banner p {
+            color: #e2e8f0;
+            font-size: 0.88rem;
+            font-weight: 600;
+        }
+
+        /* GRID PRINCIPALE */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 12px;
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            body {
+                height: auto;
+                overflow-y: auto;
+                padding: 20px 10px;
+            }
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--card-glass);
+            border: 2px solid var(--card-border);
+            border-radius: 22px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(15px);
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .card h2 {
+            font-family: 'Fredoka', cursive;
+            font-size: 1.25rem;
+            color: var(--gold);
+            margin-bottom: 6px;
+        }
+
+        /* REGOLE */
+        .rules-card {
+            text-align: left;
+            background: linear-gradient(145deg, rgba(10, 58, 33, 0.85), rgba(22, 34, 54, 0.9));
+            border-color: rgba(0, 230, 118, 0.35);
+        }
+
+        .rules-title {
+            font-family: 'Fredoka', cursive;
+            color: var(--green-mint);
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+
+        .rules-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .rule-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 10px;
+            border-radius: 12px;
+            border-left: 3px solid var(--gold);
+        }
+
+        .rule-icon {
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        .rule-text {
+            font-size: 0.82rem;
+            color: #e2e8f0;
+            line-height: 1.4;
+        }
+
+        .rule-highlight {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        .countdown-box {
+            margin-top: 4px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 230, 118, 0.3);
+            border-radius: 8px;
+            padding: 4px 8px;
+            display: inline-flex;
+            gap: 8px;
+            font-family: 'Fredoka', cursive;
+            color: var(--green-mint);
+            font-size: 0.88rem;
+            align-items: center;
+        }
+
+        .countdown-num {
+            color: var(--gold);
+        }
+
+        /* INPUT & BUTTONS */
+        .input-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 14px 0 6px 0;
+            flex-wrap: wrap;
+        }
+
+        .code-input {
+            padding: 10px 14px;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            text-align: center;
+            border: 2px solid var(--gold);
+            border-radius: 14px;
+            background: rgba(7, 16, 29, 0.9);
+            color: var(--gold-light);
+            outline: none;
+            width: 170px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--red-main), var(--red-dark));
+            color: white;
+            border: 1.5px solid var(--gold);
+            padding: 10px 22px;
+            font-family: 'Fredoka', cursive;
+            font-size: 1.05rem;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 42, 75, 0.4);
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 42, 75, 0.6);
+            background: linear-gradient(135deg, #ff4d6d, var(--red-main));
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--gold), #cca000);
+            color: #0a101d;
+            border: none;
+        }
+
+        .btn-gold:hover {
+            box-shadow: 0 8px 25px rgba(255, 204, 0, 0.6);
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+        }
+
+        .btn-back {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-light);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--gold);
+        }
+
+        .btn-sm {
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
+        /* RUOTA */
+        .wheel-container {
+            position: relative;
+            width: 270px;
+            height: 270px;
+            margin: 12px auto;
+        }
+
+        .pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-top: 24px solid var(--gold);
+            z-index: 10;
+            filter: drop-shadow(0 3px 6px rgba(0,0,0,0.8));
+        }
+
+        canvas#wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 15px var(--gold);
+            transform: rotate(0deg);
+        }
+
+        .wheel-warning-text {
+            color: var(--gold);
+            font-size: 0.82rem;
+            font-weight: 600;
+            margin-top: 10px;
+            background: rgba(255, 42, 75, 0.2);
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px dashed var(--red-main);
+            display: inline-block;
+            max-width: 95%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* 🚪 PORTA TRIDIMENSIONALE CON TARGA APPESA */
+        .wooden-door-container {
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+            cursor: pointer;
+            perspective: 800px;
+            transition: transform 0.3s ease;
+        }
+
+        .wooden-door-container:hover {
+            transform: scale(1.03);
+        }
+
+        .wooden-door {
+            background: linear-gradient(135deg, #3d2314 0%, #24140a 100%);
+            border: 4px solid #140b05;
+            border-radius: 12px;
+            padding: 16px 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.9);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .wooden-door::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%; width: 2px; height: 100%;
+            background: rgba(0,0,0,0.6);
+            box-shadow: -40px 0 0 rgba(0,0,0,0.4), 40px 0 0 rgba(0,0,0,0.4);
+        }
+
+        .door-handle {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 35px;
+            background: linear-gradient(135deg, var(--gold), #997a00);
+            border-radius: 6px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.8);
+        }
+
+        .sign-chains {
+            display: flex;
+            justify-content: space-around;
+            width: 60%;
+            height: 12px;
+            position: relative;
+        }
+
+        .sign-chains::before, .sign-chains::after {
+            content: '';
+            position: absolute;
+            width: 3px;
+            height: 14px;
+            background: #b8860b;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        }
+        .sign-chains::before { left: 15px; }
+        .sign-chains::after { right: 15px; }
+
+        .hanging-sign {
+            background: linear-gradient(145deg, #5c3818, #36200e);
+            border: 2.5px solid var(--gold);
+            border-radius: 10px;
+            padding: 10px 16px;
+            text-align: center;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.7), inset 0 0 10px rgba(0,0,0,0.5);
+            width: 90%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hanging-sign-title {
+            font-family: 'Fredoka', cursive;
+            color: var(--gold);
+            font-size: 1.05rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .hanging-sign-sub {
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            margin-top: 2px;
+            font-weight: 500;
+        }
+
+        /* TABELLA ADMIN */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        .admin-table th, .admin-table td {
+            padding: 8px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-table th {
+            color: var(--gold);
+            font-family: 'Fredoka', cursive;
+            font-weight: 600;
+        }
+
+        .secret-blur {
+            background: rgba(255, 255, 255, 0.08);
+            color: transparent;
+            text-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+            user-select: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            cursor: pointer;
+        }
+
+        .secret-revealed {
+            background: rgba(255, 204, 0, 0.2);
+            color: var(--gold-light);
+            text-shadow: none;
+            font-weight: 700;
+        }
+
+        /* MODALI */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(7, 16, 29, 0.85);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #162236, #0d1522);
+            border: 2px solid var(--gold);
+            padding: 30px 20px;
+            border-radius: 24px;
+            text-align: center;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-gift-icon {
+            font-size: 3.5rem;
+            margin-bottom: 8px;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .winner-title {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 2px;
+        }
+
+        .winner-name {
+            font-family: 'Fredoka', cursive;
+            color: var(--gold);
+            font-size: 2.1rem;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 10px rgba(255, 204, 0, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <canvas id="snowCanvas"></canvas>
+    <div class="santa-sleigh">🛷🎅🎁🦌🦌</div>
+
+    <div class="container">
+        <!-- HEADER -->
+        <div class="header-banner">
+            <h1>🎅 Secret Santa 2026 🎁</h1>
+            <p>Inserisci il codice, gira la ruota e scopri la tua "vittima"! 🤪✨</p>
+        </div>
+
+        <!-- MAIN GRID AFFIANCATA -->
+        <div class="main-grid" id="homeGrid">
+            <!-- REGOLE -->
+            <div class="card rules-card">
+                <div class="rules-title">
+                    <span>📜 Regole d'Ingaggio</span>
+                </div>
+                <ul class="rules-list">
+                    <li class="rule-item">
+                        <div class="rule-icon">💸</div>
+                        <div class="rule-text"><b>Budget:</b> Max <span class="rule-highlight">20 CHF</span> (niente tirchi né sceicchi!).</div>
+                    </li>
+                    <li class="rule-item">
+                        <div class="rule-icon">⏰</div>
+                        <div class="rule-text">
+                            <b>Scadenza:</b> <span class="rule-highlight">15 Dicembre</span>
+                            <div class="countdown-box" id="countdownBox">
+                                <span>⏳ <span id="cdDays">00</span>d <span id="cdHours">00</span>h <span id="cdMins">00</span>m</span>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="rule-item">
+                        <div class="rule-icon">🎯</div>
+                        <div class="rule-text"><b>Missione:</b> Fai un regalo che faccia sorridere (o disperare) il tuo malcapitato! 🤪</div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- SCHERMATA CODICE -->
+            <div class="card" style="display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h2>🔑 Inserisci il Codice</h2>
+                <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Ricevuto dal Dottor Brex 🧝‍♂️</p>
+                
+                <div class="input-group">
+                    <input type="text" id="codeInput" class="code-input" placeholder="BX7K2" maxlength="5">
+                    <button class="btn btn-gold" onclick="handleCodeSubmit()">ENTRA 🎄</button>
+                </div>
+                <div id="codeError" style="color: #ff4d6d; font-size: 0.82rem; margin-top: 4px;" class="hidden">⚠️ Codice errato! Troppo spumante? 🍾</div>
+            </div>
+        </div>
+
+        <!-- SCHERMATA RUOTA -->
+        <div id="wheelCard" class="card hidden" style="width: 100%;">
+            <button class="btn-back" onclick="goToHome()">⬅️ Indietro</button>
+
+            <h2 id="welcomeUserText" style="margin-top: 4px;">Ciao Partecipante! 🥳</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Premi il tasto e scopri il tuo destino! 🙏</p>
+
+            <div class="wheel-container">
+                <div class="pointer"></div>
+                <canvas id="wheel" width="270" height="270"></canvas>
+            </div>
+
+            <button id="spinBtn" class="btn btn-gold" onclick="spinWheel()">GIRA LA RUOTA 🎡</button>
+
+            <div id="wheelWarning" class="hidden">
+                <span class="wheel-warning-text">⚠️ Inutile girare ancora: il tuo destino è segnato nei registri! 😜📜</span>
+            </div>
+        </div>
+
+        <!-- 🚪 PORTA TRIDIMENSIONALE CON TARGA APPESA (LABORATORIO DOTTOR BREX) -->
+        <div class="wooden-door-container" onclick="openAdminModal()">
+            <div class="wooden-door">
+                <div class="door-handle"></div>
+                <div class="sign-chains"></div>
+                <div class="hanging-sign">
+                    <div class="hanging-sign-title">Laboratorio Dottor Brex 🎅🏻</div>
+                    <div class="hanging-sign-sub">Area Riservata all'Elfo Capo 🔒</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE RISULTATO -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal">
+            <div class="modal-gift-icon">🎁</div>
+            <div class="winner-title" id="giverTitleText">Devi fare il regalo a:</div>
+            <div class="winner-name" id="winnerNameText">-</div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 18px;">Acquista e bocca cucita con tutti! 🤫🤐</p>
+            <button class="btn" onclick="closeResultModal()">HO CAPITO! 🎄</button>
+        </div>
+    </div>
+
+    <!-- MODALE ADMIN -->
+    <div class="modal-overlay" id="adminModal">
+        <div class="modal" style="max-width: 650px; text-align: left;">
+            <h2 style="color: var(--gold); font-family: 'Fredoka', cursive; text-align: center; margin-bottom: 8px;">🛠️ Laboratorio Dottor Brex</h2>
+            
+            <div id="adminAuthSection">
+                <p style="text-align: center; color: var(--text-muted); margin-bottom: 12px; font-size: 0.88rem;">Parola d'ordine segreta:</p>
+                <div class="input-group">
+                    <input type="password" id="adminPasswordInput" class="code-input" placeholder="••••••••" style="width: 170px; letter-spacing: 2px;">
+                    <button class="btn btn-gold" onclick="verifyAdminPassword()">ACCEDI 🔓</button>
+                </div>
+                <div id="adminAuthError" style="color: #ff4d6d; font-size: 0.82rem; text-align: center; margin-top: 6px;" class="hidden">Password errata! Negato dal Grinch 🧹</div>
+            </div>
+
+            <div id="adminContentSection" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                    <button class="btn btn-sm btn-gold" onclick="toggleAllSecrets()">👁️ Mostra/Nascondi Tutti</button>
+                    <span style="font-size:0.78rem; color:var(--text-muted);">📌 Abbinamenti Immutabili Multidispositivo</span>
+                </div>
+
+                <div style="max-height: 250px; overflow-y: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Partecipante</th>
+                                <th>Codice</th>
+                                <th>Destinatario</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="text-align: center; margin-top: 16px;">
+                    <button class="btn btn-sm" onclick="closeAdminModal()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: var(--text-light);">Chiudi Porta 🚪</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PARTICIPANTS = [
+            "Brex", "Desiree", "Marish", "Peppe", 
+            "Sara", "Antonio di Sara", "Salvatore", "Antonella", "Angelo", "Pio", "Nicole"
+        ];
+
+        // 🔒 ABBINAMENTI E CODICI FISSI PRE-CALCOLATI (UGUALI PER TUTTI I DISPOSITIVI)
+        const FIXED_ASSIGNMENTS = {
+            "BX7K2": { giver: "Brex", receiver: "Desiree" },
+            "DS8M4": { giver: "Desiree", receiver: "Salvatore" },
+            "MR3P9": { giver: "Marish", receiver: "Antonio di Sara" },
+            "PP5N1": { giver: "Peppe", receiver: "Antonella" },
+            "SR9T3": { giver: "Sara", receiver: "Angelo" },
+            "AS2W8": { giver: "Antonio di Sara", receiver: "Brex" },
+            "SL6L5": { giver: "Salvatore", receiver: "Peppe" },
+            "AN4R7": { giver: "Antonella", receiver: "Nicole" },
+            "AG1X6": { giver: "Angelo", receiver: "Pio" },
+            "PI8Y2": { giver: "Pio", receiver: "Sara" },
+            "NC3Z9": { giver: "Nicole", receiver: "Marish" }
+        };
+
+        const ADMIN_PASS = "brex2026";
+
+        const colors = [
+            "#ff2a4b", "#00e676", "#00b0ff", "#ffcc00", 
+            "#d500f9", "#00bfa5", "#ff007f", "#3d5aff", "#ff3d00", "#10b981", "#8b5cf6"
+        ];
+
+        let currentSession = null;
+        let isSpinning = false;
+        let currentRotation = 0;
+        let allSecretsRevealed = false;
+
+        function initSystem() {
+            initSnow();
+            startCountdown();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const codeParam = urlParams.get('code');
+            if (codeParam) {
+                document.getElementById('codeInput').value = codeParam.toUpperCase();
+                handleCodeSubmit();
+            }
+        }
+
+        function startCountdown() {
+            const targetDate = new Date("2026-12-15T23:59:59").getTime();
+
+            function updateTimer() {
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+
+                if (diff <= 0) {
+                    document.getElementById('countdownBox').innerHTML = "<span>🎉 Tempo scaduto! Via allo scambio!</span>";
+                    return;
+                }
+
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                document.getElementById('cdDays').innerText = days < 10 ? '0' + days : days;
+                document.getElementById('cdHours').innerText = hours < 10 ? '0' + hours : hours;
+                document.getElementById('cdMins').innerText = mins < 10 ? '0' + mins : mins;
+            }
+
+            updateTimer();
+            setInterval(updateTimer, 60000);
+        }
+
+        function handleCodeSubmit() {
+            const input = document.getElementById('codeInput').value.trim().toUpperCase();
+            const err = document.getElementById('codeError');
+
+            if (FIXED_ASSIGNMENTS[input]) {
+                err.classList.add('hidden');
+                currentSession = { ...FIXED_ASSIGNMENTS[input], code: input };
+
+                document.getElementById('homeGrid').classList.add('hidden');
+                document.getElementById('wheelCard').classList.remove('hidden');
+                document.getElementById('wheelWarning').classList.add('hidden');
+                document.getElementById('welcomeUserText').innerText = `Ciao ${currentSession.giver}! 🥳`;
+                
+                drawWheel();
+            } else {
+                err.classList.remove('hidden');
+            }
+        }
+
+        function goToHome() {
+            currentSession = null;
+            document.getElementById('codeInput').value = '';
+            document.getElementById('wheelCard').classList.add('hidden');
+            document.getElementById('homeGrid').classList.remove('hidden');
+        }
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheel');
+            const ctx = canvas.getContext('2d');
+            const numSlices = PARTICIPANTS.length;
+            const radius = canvas.width / 2;
+            const sliceAngle = (2 * Math.PI) / numSlices;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            PARTICIPANTS.forEach((name, i) => {
+                const startAngle = i * sliceAngle;
+                const endAngle = startAngle + sliceAngle;
+
+                ctx.beginPath();
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius, startAngle, endAngle);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = "#0a101d";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(radius, radius);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 11px Plus Jakarta Sans";
+                ctx.fillText(name, radius - 10, 4);
+                ctx.restore();
+            });
+        }
+
+        function spinWheel() {
+            if (isSpinning || !currentSession) return;
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+
+            const targetName = currentSession.receiver;
+            const targetIndex = PARTICIPANTS.indexOf(targetName);
+            const numSlices = PARTICIPANTS.length;
+            const sliceAngleDeg = 360 / numSlices;
+
+            const targetSliceCenter = (targetIndex * sliceAngleDeg) + (sliceAngleDeg / 2);
+            let targetRotationAngle = (270 - targetSliceCenter) % 360;
+            if (targetRotationAngle < 0) targetRotationAngle += 360;
+
+            const currentMod = currentRotation % 360;
+            let distanceToTarget = targetRotationAngle - currentMod;
+            if (distanceToTarget <= 0) distanceToTarget += 360;
+
+            currentRotation += (360 * 5) + distanceToTarget;
+
+            const canvas = document.getElementById('wheel');
+            canvas.style.transition = "transform 4s cubic-bezier(0.15, 0.9, 0.1, 1)";
+            canvas.style.transform = `rotate(${currentRotation}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                document.getElementById('wheelWarning').classList.remove('hidden');
+                showResultModal(targetName);
+                triggerConfetti();
+            }, 4000);
+        }
+
+        function showResultModal(winner) {
+            document.getElementById('giverTitleText').innerText = `${currentSession.giver}, devi fare il regalo a:`;
+            document.getElementById('winnerNameText').innerText = winner;
+            document.getElementById('resultModal').classList.add('active');
+        }
+
+        function closeResultModal() {
+            document.getElementById('resultModal').classList.remove('active');
+            document.getElementById('spinBtn').disabled = false;
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.add('active');
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.remove('active');
+        }
+
+        function verifyAdminPassword() {
+            const pass = document.getElementById('adminPasswordInput').value;
+            const err = document.getElementById('adminAuthError');
+
+            if (pass === ADMIN_PASS) {
+                err.classList.add('hidden');
+                document.getElementById('adminAuthSection').classList.add('hidden');
+                document.getElementById('adminContentSection').classList.remove('hidden');
+                renderAdminTable();
+            } else {
+                err.classList.remove('hidden');
+            }
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById('adminTableBody');
+            tbody.innerHTML = "";
+
+            Object.keys(FIXED_ASSIGNMENTS).forEach(code => {
+                const item = FIXED_ASSIGNMENTS[code];
+                const link = `${window.location.origin}${window.location.pathname}?code=${code}`;
+                const msg = encodeURIComponent(`Ciao ${item.giver}! 🎄 Ecco il tuo link segreto per il Secret Santa: ${link} (Codice: ${code})`);
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${item.giver}</b></td>
+                    <td><code style="color:var(--gold); font-weight:bold;">${code}</code></td>
+                    <td><span class="secret-blur ${allSecretsRevealed ? 'secret-revealed' : ''}" onclick="this.classList.toggle('secret-revealed')">${item.receiver}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-gold" onclick="copyToClipboard('${link}')">📋 Link</button>
+                        <a href="https://wa.me/?text=${msg}" target="_blank" class="btn btn-sm" style="background:#25D366; text-decoration:none; color:white; padding:5px 8px; border-radius:8px; display:inline-block; font-weight:600;">💬 WA</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function toggleAllSecrets() {
+            allSecretsRevealed = !allSecretsRevealed;
+            renderAdminTable();
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Link copiato negli appunti!");
+            });
+        }
+
+        function initSnow() {
+            const canvas = document.getElementById('snowCanvas');
+            const ctx = canvas.getContext('2d');
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            const flakes = Array.from({ length: 45 }, () => ({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                r: Math.random() * 2.5 + 1,
+                d: Math.random() * 0.6 + 0.3
+            }));
+
+            function drawFlakes() {
+                ctx.clearRect(0, 0, width, height);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                ctx.beginPath();
+                flakes.forEach(f => {
+                    ctx.moveTo(f.x, f.y);
+                    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                });
+                ctx.fill();
+                moveFlakes();
+            }
+
+            function moveFlakes() {
+                flakes.forEach(f => {
+                    f.y += f.d;
+                    if (f.y > height) {
+                        f.y = 0;
+                        f.x = Math.random() * width;
+                    }
+                });
+            }
+
+            setInterval(drawFlakes, 30);
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+            });
+        }
+
+        window.onload = initSystem;
+    </script>
+</body>
+</html>
