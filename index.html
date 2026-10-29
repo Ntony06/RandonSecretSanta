@@ -348,7 +348,7 @@
             animation: fadeIn 0.4s ease;
         }
 
-        /* 🚪 PORTA TRIDIMENSIONALE CON TARGA APPESA */
+        /* PORTA TRIDIMENSIONALE CON TARGA APPESA */
         .wooden-door-container {
             width: 100%;
             max-width: 380px;
@@ -595,7 +595,7 @@
                 <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 2px;">Ricevuto dal Dottor Brex 🧝‍♂️</p>
                 
                 <div class="input-group">
-                    <input type="text" id="codeInput" class="code-input" placeholder="BX7K2" maxlength="5">
+                    <input type="text" id="codeInput" class="code-input" placeholder="AB7X2" maxlength="6">
                     <button class="btn btn-gold" onclick="handleCodeSubmit()">ENTRA 🎄</button>
                 </div>
                 <div id="codeError" style="color: #ff4d6d; font-size: 0.82rem; margin-top: 4px;" class="hidden">⚠️ Codice errato! Troppo spumante? 🍾</div>
@@ -621,7 +621,7 @@
             </div>
         </div>
 
-        <!-- 🚪 PORTA TRIDIMENSIONALE CON TARGA APPESA (LABORATORIO DOTTOR BREX) -->
+        <!-- PORTA TRIDIMENSIONALE CON TARGA APPESA -->
         <div class="wooden-door-container" onclick="openAdminModal()">
             <div class="wooden-door">
                 <div class="door-handle"></div>
@@ -662,7 +662,7 @@
             <div id="adminContentSection" class="hidden">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                     <button class="btn btn-sm btn-gold" onclick="toggleAllSecrets()">👁️ Mostra/Nascondi Tutti</button>
-                    <span style="font-size:0.78rem; color:var(--text-muted);">📌 Abbinamenti Immutabili Multidispositivo</span>
+                    <button class="btn btn-sm" onclick="shuffleAssignments()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--card-border); color: var(--text-light);">🔀 Rigenera</button>
                 </div>
 
                 <div style="max-height: 250px; overflow-y: auto;">
@@ -693,28 +693,29 @@
             "Sara", "Antonio di Sara", "Salvatore", "Antonella", "Angelo", "Pio", "Nicole"
         ];
 
-        // 🔒 ABBINAMENTI E CODICI FISSI PRE-CALCOLATI (UGUALI PER TUTTI I DISPOSITIVI)
+        const ADMIN_PASS = "brex2026";
+
+        // ABBINAMENTI RIGIDAMENTE BLOCCATI E SEGRETI
         const FIXED_ASSIGNMENTS = {
-            "BX7K2": { giver: "Brex", receiver: "Desiree" },
+            "BX7K2": { giver: "Brex", receiver: "Nicole" },
             "DS8M4": { giver: "Desiree", receiver: "Salvatore" },
-            "MR3P9": { giver: "Marish", receiver: "Antonio di Sara" },
-            "PP5N1": { giver: "Peppe", receiver: "Antonella" },
-            "SR9T3": { giver: "Sara", receiver: "Angelo" },
+            "MR3P9": { giver: "Marish", receiver: "Angelo" },
+            "PP5N1": { giver: "Peppe", receiver: "Antonio di Sara" },
+            "SR9T3": { giver: "Sara", receiver: "Desiree" },
             "AS2W8": { giver: "Antonio di Sara", receiver: "Brex" },
             "SL6L5": { giver: "Salvatore", receiver: "Peppe" },
-            "AN4R7": { giver: "Antonella", receiver: "Nicole" },
+            "AN4R7": { giver: "Antonella", receiver: "Sara" },
             "AG1X6": { giver: "Angelo", receiver: "Pio" },
-            "PI8Y2": { giver: "Pio", receiver: "Sara" },
+            "PI8Y2": { giver: "Pio", receiver: "Antonella" },
             "NC3Z9": { giver: "Nicole", receiver: "Marish" }
         };
-
-        const ADMIN_PASS = "brex2026";
 
         const colors = [
             "#ff2a4b", "#00e676", "#00b0ff", "#ffcc00", 
             "#d500f9", "#00bfa5", "#ff007f", "#3d5aff", "#ff3d00", "#10b981", "#8b5cf6"
         ];
 
+        let assignments = { ...FIXED_ASSIGNMENTS };
         let currentSession = null;
         let isSpinning = false;
         let currentRotation = 0;
@@ -757,13 +758,37 @@
             setInterval(updateTimer, 60000);
         }
 
+        function shuffleAssignments() {
+            if (confirm("Vuoi davvero rimescolare gli abbinamenti casualmente?")) {
+                let givers = [...PARTICIPANTS];
+                let receivers = [...PARTICIPANTS];
+                let valid = false;
+
+                while (!valid) {
+                    receivers = [...PARTICIPANTS].sort(() => Math.random() - 0.5);
+                    valid = givers.every((g, i) => g !== receivers[i]);
+                }
+
+                const codes = Object.keys(assignments);
+                givers.forEach((giver, i) => {
+                    assignments[codes[i]] = {
+                        giver: giver,
+                        receiver: receivers[i]
+                    };
+                });
+
+                renderAdminTable();
+                alert("Nuovi abbinamenti temporanei generati per questa sessione!");
+            }
+        }
+
         function handleCodeSubmit() {
             const input = document.getElementById('codeInput').value.trim().toUpperCase();
             const err = document.getElementById('codeError');
 
-            if (FIXED_ASSIGNMENTS[input]) {
+            if (assignments[input]) {
                 err.classList.add('hidden');
-                currentSession = { ...FIXED_ASSIGNMENTS[input], code: input };
+                currentSession = { ...assignments[input], code: input };
 
                 document.getElementById('homeGrid').classList.add('hidden');
                 document.getElementById('wheelCard').classList.remove('hidden');
@@ -896,8 +921,8 @@
             const tbody = document.getElementById('adminTableBody');
             tbody.innerHTML = "";
 
-            Object.keys(FIXED_ASSIGNMENTS).forEach(code => {
-                const item = FIXED_ASSIGNMENTS[code];
+            Object.keys(assignments).forEach(code => {
+                const item = assignments[code];
                 const link = `${window.location.origin}${window.location.pathname}?code=${code}`;
                 const msg = encodeURIComponent(`Ciao ${item.giver}! 🎄 Ecco il tuo link segreto per il Secret Santa: ${link} (Codice: ${code})`);
 
